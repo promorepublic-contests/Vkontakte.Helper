@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>PromoRepublic.Helpers.Vkontakte</id>
+    <version>1.0.0</version>
+    <title>ASP.NET MVC Helper for VKontakte JS API</title>
+    <authors>Yuriy Silvestrov</authors>
+    <owners>PromoRepublic</owners>
+    <projectUrl>http://promorepublic.github.io/Vkontakte.Helper</projectUrl>
+    <iconUrl>https://raw.github.com/promorepublic/oauth/master/Demo/Images/logo32.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>ASP.NET MVC Helper for VKontakte JS API, very similar to Microsoft helper for Facebook</description>
+    <releaseNotes>Initial release.</releaseNotes>
+    <copyright>Copyright PromoRepublic 2013</copyright>
+    <tags>vkontakte helper</tags>
+    <dependencies>
+      <dependency id="jQuery"/>
+    </dependencies>		
+  </metadata>
+  <files>
+	 <file src="content\*.cshtml" target="content\App_Code" /> 
+  </files>	
+</package>
