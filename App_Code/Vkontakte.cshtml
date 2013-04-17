@@ -1,0 +1,324 @@
+﻿@using System.Collections.Specialized;
+@using System.Security;
+@using System.Text;
+@using System.Web.Script.Serialization
+@using System.Web.WebPages.Scope;
+
+@functions {   
+    
+    private static readonly object _isInitializedKey = new object();
+    private static readonly object _isIframeKey = new object();
+    private static readonly object _appIdKey = new object();
+    private static readonly object _appSecretKey = new object();
+    private static readonly object _language = new object();
+
+    public static bool IsInitialized
+    {
+        get
+        {
+            return (bool)(ScopeStorage.CurrentScope[_isInitializedKey] ?? false);
+        }
+
+        private set
+        {
+            ScopeStorage.CurrentScope[_isInitializedKey] = value;
+        }
+    }
+    
+    public static bool IsIframe
+    {
+        get
+        {
+            return (bool)(ScopeStorage.CurrentScope[_isIframeKey] ?? false);
+        }
+
+        private set
+        {
+            ScopeStorage.CurrentScope[_isIframeKey] = value;
+        }
+    }
+
+    public static string AppId
+    {
+        get
+        {
+            return (string)(ScopeStorage.CurrentScope[_appIdKey] ?? "");
+        }
+
+        set
+        {
+            ScopeStorage.CurrentScope[_appIdKey] = value;
+        }
+    }
+
+    public static string AppSecret
+    {
+        get
+        {
+            return (string)(ScopeStorage.CurrentScope[_appSecretKey] ?? "");
+        }
+
+        set
+        {
+            ScopeStorage.CurrentScope[_appSecretKey] = value;
+        }
+    }
+
+    public static string Language
+    {
+        get
+        {
+            return (string)(ScopeStorage.CurrentScope[_language] ?? "en_US");
+        }
+
+        set
+        {
+            ScopeStorage.CurrentScope[_language] = value;
+        }
+    }
+
+    /// <summary>
+    ///  Initialize the helper with your Vkontakte application settings.    
+    /// </summary>
+    /// <param name="appId">Vkontakte application id.</param>        
+    /// <param name="appSecret">Vkontakte application secret.</param>
+    /// <param name="isIframe">True for VKontakte IFrame application</param>   
+    public static void Initialize(string appId, string appSecret, bool isIframe = false)
+    {
+        if (IsInitialized || String.IsNullOrEmpty(appId))
+            return;            
+
+        AppId = appId;
+        AppSecret = appSecret;
+        IsInitialized = true;
+        IsIframe = isIframe;
+    }    
+    
+}
+
+
+@*
+Summary: 
+  Initialize the VKontakte JavaScript SDK to be able to support HTML tags of the social plugins.
+*@
+@helper GetInitializationScripts()
+{
+    if (!IsInitialized)
+    {
+        return;
+    }
+    if (IsIframe)
+    {
+        <script src="//vk.com/js/api/xd_connection.js?2" type="text/javascript"></script>
+        <script type="text/javascript">
+            VK.init();
+            if (typeof(_vkScriptsToLoad) != "undefined") {
+                for (var script in _vkScriptsToLoad) {
+                    if (typeof(_vkScriptsToLoad[script]) == "function") {
+                        _vkScriptsToLoad[script]();
+                    }
+                }
+            }
+            $(window).load(function() {
+                $(window).trigger('vk-init', {});
+                $("body").data('vkInited', true);
+            });        
+        </script>
+    }
+    else
+    {
+        <script type="text/javascript" src="//vk.com/js/api/openapi.js?75"></script>
+        <script type="text/javascript">
+            $(window).load(function() {
+                VK.init({ apiId: @AppId, onlyWidgets: true });
+                if (typeof(_vkScriptsToLoad) != "undefined") {
+                    for (var script in _vkScriptsToLoad) {
+                        if (typeof(_vkScriptsToLoad[script]) == "function") {
+                            _vkScriptsToLoad[script]();
+                        }
+                    }
+                }
+                $(window).trigger('vk-init', {});
+                $("body").data('vkInited', true);
+            });        
+        </script>
+    }
+}
+
+@*
+Summary:
+  Shows a Vkontacte Like Button. When the user clicks the Like button on your site, a story appears in the user's friends' News Feed with a link back to your website.
+
+Parameter: width
+    The width of the Like button.
+Parameter: title
+    The page title.
+Parameter: description
+    The page description text. 
+Parameter: type
+    Type of the button. Could be mini, button, full or vertical.
+Parameter: id
+    The div id.
+Parameter: cssClass
+    The div css class.
+Parameter: eventTracker
+    js function name to be called when like button is clicked.
+    
+*@
+@helper LikeButton(
+            int width = 450,
+            string title = "",
+            string description = "",
+            string type = "vertical",
+            string id = "vk_like",
+            string cssClass = "vk-like",
+            string eventTracker = "updateVkVotes"
+            )
+{
+    if (!IsInitialized)
+    {
+        return;
+    }
+
+    <div class="@cssClass" id="@id"></div>                
+    <script type="text/javascript">
+        var inner = function() {
+            VK.Widgets.Like('@id',
+                { type: "@type", width: @width, pageTitle: '@title', pageDescription: '@description' });
+            VK.Observer.subscribe('widgets.like.liked', function(number) {
+                @(eventTracker)(number);
+            });
+            VK.Observer.subscribe('widgets.like.unliked', function(number) {
+                @(eventTracker)(number);
+            });
+        };
+        if (typeof($) != "undefined") {
+            if (typeof(($("body").data("vkInited")) != "undefined") && ($("body").data("vkInited"))) {
+                inner();
+            } else {
+                $(window).on('vk-init', inner);
+            }
+        } else {
+            if (typeof(_vkScriptsToLoad) == "undefined") { _vkScriptsToLoad = []; }
+            _vkScriptsToLoad.push( function() {
+                $(window).on('vk-init', inner);
+            });            
+        }
+    </script>                
+
+}
+
+@*
+Summary:
+    Shows a Vkontakte Like Box. The Like Box is a social plugin that enables Vkontakte Page owners to attract and gain Likes from their own website.
+    The Like Box enables users to:
+		- See how many users already like this page, and which of their friends like it too
+		- Read recent posts from the page
+		- Like the page with one click, without needing to visit the page   
+
+Parameter: pageId
+    The ID of the Vkontakte Page for this Like box.
+Parameter: width
+    The width of the plugin in pixels.
+Parameter: height
+    The height of the plugin in pixels.
+Parameter: id
+    The id of the plugin div
+Parameter: cssClass
+    The css class of the plugin div
+*@
+@helper LikeBox(
+            string pageId,
+            int width = 292,
+            int height = 587,
+            string cssClass = "vk_groups",
+            string id = "vk_groups"
+            )
+{                
+    if (!IsInitialized || String.IsNullOrEmpty(pageId))
+    {
+        return;
+    }
+    <!-- VK Widget -->
+    <div class="@cssClass" id="@id"></div>                
+    <script type="text/javascript">
+        var inner = function() {
+            VK.Widgets.Group("@id", { mode: 0, width: "@width", height: "@height" }, "@pageId");
+        };
+        if (typeof($) != "undefined") {
+            if (typeof(($("body").data("vkInited")) != "undefined") && ($("body").data("vkInited"))) {
+                inner();
+            } else {
+                $(window).on('vk-init', inner);
+            }
+        } else {
+            if (typeof(_vkScriptsToLoad) == "undefined") { _vkScriptsToLoad = []; }
+            _vkScriptsToLoad.push( function() {
+                $(window).on('vk-init', inner);
+            });            
+        }
+    </script>   
+}
+
+
+@*
+Summary:
+    Shows a Vkontacte Comments plugin.
+    The Comments Box easily enables your users to comment on your site's content — whether it's for a web page, article, photo, or other piece of content. 
+    Then the user can share the comment on Vkontakte on their Wall and in their friends' streams.
+
+Parameter: pageId
+    An id associated with the comments object (defaults to URL-encoded page URL).
+Parameter: width
+    The width of the plugin, in pixels.
+Parameter: height
+    The height of the plugin, in pixels.
+Parameter: id
+    The id of the plugin div
+Parameter: cssClass
+    The css class of the plugin div
+Parameter: includeExtendedComments
+    Include extended (media) comments.
+*@
+@helper Comments(
+            int width = 550,
+            int numPosts = 10,
+            bool includeExtendedComments = true,
+            string cssClass = "vk_groups",
+            string id = "vk_groups",
+            string pageId = null
+                )
+{
+    <div class="@cssClass" id="@id"></div>                
+    <script type="text/javascript">
+        var inner = function() {
+            VK.Widgets.Comments("@id", {limit: @numPosts, width: "@width", attach: @if (includeExtendedComments)
+                                                                                       {
+                                                                                           <text>"*"</text>
+                                                                                       }
+                                                                                       else
+                                                                                       {
+                                                                                           <text>false</text>                                                                                           
+                                                                                       }} 
+            @if (!String.IsNullOrEmpty(pageId))
+            {
+                <text>, @pageId</text>
+            }
+            );
+        };
+                if (typeof($) != "undefined") {
+                    if (typeof(($("body").data("vkInited")) != "undefined") && ($("body").data("vkInited"))) {
+                        inner();
+                    } else {
+                        $(window).on('vk-init', inner);
+                    }
+                } else {
+                    if (typeof(_vkScriptsToLoad) == "undefined") { _vkScriptsToLoad = []; }
+                    _vkScriptsToLoad.push( function() {
+                        $(window).on('vk-init', inner);
+                    });            
+                }
+
+    </script>   
+<div id="vk_comments"></div>
+}
