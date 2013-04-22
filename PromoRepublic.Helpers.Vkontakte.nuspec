@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>PromoRepublic.Helpers.Vkontakte</id>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <title>ASP.NET MVC Helper for VKontakte JS API</title>
     <authors>Yuriy Silvestrov</authors>
     <owners>PromoRepublic</owners>
@@ -14,7 +14,7 @@
     <copyright>Copyright PromoRepublic 2013</copyright>
     <tags>vkontakte helper</tags>
     <dependencies>
-      <dependency id="jQuery"/>
+      <dependency id="jQuery" version="1.7"/>
     </dependencies>		
   </metadata>
   <files>
