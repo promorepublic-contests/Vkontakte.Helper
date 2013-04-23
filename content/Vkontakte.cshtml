@@ -210,6 +210,44 @@ Parameter: eventTracker
 
 @*
 Summary:
+  Shows a Vkontacte Share Button. When the user clicks the Share button on your site, post to wall dialogue appears.
+
+Parameter: id
+    The id of the plugin div
+Parameter: cssClass
+    The css class of the plugin div
+Parameter: text
+    The button text.
+Parameter: type
+    Type of the button. Could be mini, button, full or vertical.
+    
+*@
+@helper ShareButton(
+                    string type = "round_nocount",
+                    string id = "vk_share",
+                    string cssClass = "vk-share",
+                    string text = "VKontakte"
+            )
+            
+{
+    if (!IsInitialized)
+    {
+        return;
+    }
+
+    <div class="@cssClass" id="@id"></div>                
+    <script type="text/javascript">
+        setTimeout(function() {
+            $(window).on('vk-init', function(data) {
+               $("#@id").html(VK.Share.button(false,{type: "@type", text: "@text"}));
+            });
+        }, 0);
+    </script>                
+
+}
+
+@*
+Summary:
     Shows a Vkontakte Like Box. The Like Box is a social plugin that enables Vkontakte Page owners to attract and gain Likes from their own website.
     The Like Box enables users to:
 		- See how many users already like this page, and which of their friends like it too
